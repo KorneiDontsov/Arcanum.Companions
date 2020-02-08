@@ -7,14 +7,11 @@
 
     <PropertyGroup>
         <Product>Arcanum.DataContracts</Product>
-        <Version>0.0.1</Version>
+        <Version>1.0.0</Version>
     </PropertyGroup>
 
     <PropertyGroup>
         <Title>Arcanum.Companions</Title>
-        <Description>
-            Arcanum.Companions.
-        </Description>
     </PropertyGroup>
 
     <ItemGroup>
