@@ -86,6 +86,26 @@ namespace Arcanum.Companions {
 						return matchedCompanion;
 				return maybeParentCompanionResolver?.MayGetInheritedCompanion<T>();
 			}
+
+			IEnumerable<T> EnumerateInheritedCompanions<T> () {
+				foreach (var companionInfo in companionInfos)
+					if (companionInfo.inherited && companionInfo.instance is T matchedCompanion)
+						yield return matchedCompanion;
+				if (maybeParentCompanionResolver is {} parentCompanionResolver) {
+					var inheritedCompanions = parentCompanionResolver.EnumerateInheritedCompanions<T>();
+					foreach (var inheritedCompanion in inheritedCompanions) yield return inheritedCompanion;
+				}
+			}
+
+			public IEnumerable<T> EnumerateCompanions<T> () where T: class {
+				foreach (var companionInfo in companionInfos)
+					if (companionInfo.instance is T matchedCompanion)
+						yield return matchedCompanion;
+				if (maybeParentCompanionResolver is {} parentCompanionResolver) {
+					var inheritedCompanions = parentCompanionResolver.EnumerateInheritedCompanions<T>();
+					foreach (var inheritedCompanion in inheritedCompanions) yield return inheritedCompanion;
+				}
+			}
 		}
 
 		static Func<Type, CompanionResolver> getCompanionResolver { get; } =
@@ -105,5 +125,8 @@ namespace Arcanum.Companions {
 
 		public static Boolean HasCompanion<T> (this Type type) where T: class =>
 			type.MayGetCompanion<T>() is {};
+
+		public static IEnumerable<T> EnumerateCompanions<T> (this Type type) where T: class =>
+			getCompanionResolver(type).EnumerateCompanions<T>();
 	}
 }
