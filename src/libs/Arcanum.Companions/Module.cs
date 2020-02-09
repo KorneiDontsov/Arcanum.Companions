@@ -4,7 +4,6 @@ namespace Arcanum.Companions {
 	using System;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
-	using System.Linq;
 	using System.Reflection;
 
 	public static class Module {
@@ -19,20 +18,13 @@ namespace Arcanum.Companions {
 		}
 
 		static ImmutableArray<CompanionInfo> CreateCompanionInfos (Type type) {
-			static Boolean ArgsOfOpenGenTypesAreEqual (Type first, Type second) {
-				static IEnumerable<Type[]> SelectArgConstraints (Type type) =>
-					type.GetGenericArguments().Select(arg => arg.GetGenericParameterConstraints());
-
-				return SelectArgConstraints(first).SequenceEqual(SelectArgConstraints(second));
-			}
-
 			static Type? MayFindPrimaryCompanionType (Type t) {
 				var compT = t.GetNestedType("Companion");
 				if (compT is null || ! compT.IsClass || t.IsGenericTypeDefinition)
 					return null;
 				else if (! compT.IsGenericTypeDefinition)
 					return compT;
-				else if (t.IsClosedGenType(out var tDefinition) && ArgsOfOpenGenTypesAreEqual(compT, tDefinition))
+				else if (t.IsClosedGenType(out var tDefinition) && compT.HasSameGenSignatureAs(tDefinition))
 					return compT.MakeGenericType(t.GenericTypeArguments);
 				else
 					return null;

@@ -7,14 +7,14 @@ namespace Arcanum.Companions.Tests {
 	using Xunit;
 
 	public class TestGenericTypeCompanion {
-		public class GenericTypeWithCompanion<[UsedImplicitly] T> {
+		public class GenericTypeWithCompanion<[UsedImplicitly] T> where T: struct {
 			public class Companion { }
 		}
 
 		[Fact]
 		public void Exists () =>
-			typeof(GenericTypeWithCompanion<Object>)
-				.HasCompanion<GenericTypeWithCompanion<Object>.Companion>()
+			typeof(GenericTypeWithCompanion<Byte>)
+				.HasCompanion<GenericTypeWithCompanion<Byte>.Companion>()
 				.Should().BeTrue();
 	}
 }
