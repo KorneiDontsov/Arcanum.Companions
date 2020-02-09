@@ -2,10 +2,23 @@
 
 namespace Arcanum.Companions {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
+	using System.Linq;
 	using System.Reflection;
 
 	static class ReflectionFunctions {
+		public static Boolean HasSameGenSignatureAs (this Type type, Type other) {
+			static IEnumerable<Type[]> SelectConstraints (Type type) {
+				var t = ! type.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
+				return t.GetGenericArguments().Select(arg => arg.GetGenericParameterConstraints());
+			}
+
+			var firstConstraints = SelectConstraints(type);
+			var secondConstraints = SelectConstraints(other);
+			return firstConstraints.SequenceEqual(secondConstraints, TypeArrayEqualityComparer.shared);
+		}
+
 		public static Boolean IsClosedGenType (this Type type, [MaybeNullWhen(false)] out Type definition) {
 			if (type.IsGenericType && ! type.IsGenericTypeDefinition) {
 				definition = type.GetGenericTypeDefinition();
