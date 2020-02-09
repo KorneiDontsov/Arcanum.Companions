@@ -2,7 +2,9 @@
 
 namespace Arcanum.Companions {
 	using System;
+	using System.Collections.Generic;
 	using System.Collections.Immutable;
+	using System.Linq;
 	using System.Reflection;
 
 	public static class Module {
@@ -17,6 +19,25 @@ namespace Arcanum.Companions {
 		}
 
 		static ImmutableArray<CompanionInfo> CreateCompanionInfos (Type type) {
+			static Boolean ArgsOfOpenGenTypesAreEqual (Type first, Type second) {
+				static IEnumerable<Type[]> SelectArgConstraints (Type type) =>
+					type.GetGenericArguments().Select(arg => arg.GetGenericParameterConstraints());
+
+				return SelectArgConstraints(first).SequenceEqual(SelectArgConstraints(second));
+			}
+
+			static Type? MayFindPrimaryCompanionType (Type t) {
+				var compT = t.GetNestedType("Companion");
+				if (compT is null || ! compT.IsClass || t.IsGenericTypeDefinition)
+					return null;
+				else if (! compT.IsGenericTypeDefinition)
+					return compT;
+				else if (t.IsClosedGenType(out var tDefinition) && ArgsOfOpenGenTypesAreEqual(compT, tDefinition))
+					return compT.MakeGenericType(t.GenericTypeArguments);
+				else
+					return null;
+			}
+
 			var result = ImmutableArray.CreateBuilder<CompanionInfo>();
 
 			var attributes = type.GetCustomAttributes(inherit: false);
@@ -26,12 +47,12 @@ namespace Arcanum.Companions {
 				result.Add(new CompanionInfo(attribute, inherited));
 			}
 
-			if (type.GetNestedType("Companion") is {IsClass: true} primCompType) {
+			if (MayFindPrimaryCompanionType(type) is {} primaryCompanionType) {
 				var primaryCompanion =
-					primCompType.GetDefaultCtor()?.Create()
-					?? primCompType.GetCtor(typeof(Type))?.Create(type);
+					primaryCompanionType.GetDefaultCtor()?.Create()
+					?? primaryCompanionType.GetCtor(typeof(Type))?.Create(type);
 				if (primaryCompanion is {}) {
-					var inherited = Attribute.IsDefined(primCompType, typeof(InheritedAttribute));
+					var inherited = Attribute.IsDefined(primaryCompanionType, typeof(InheritedAttribute));
 					result.Add(new CompanionInfo(primaryCompanion, inherited));
 				}
 			}
@@ -65,6 +86,26 @@ namespace Arcanum.Companions {
 						return matchedCompanion;
 				return maybeParentCompanionResolver?.MayGetInheritedCompanion<T>();
 			}
+
+			IEnumerable<T> EnumerateInheritedCompanions<T> () {
+				foreach (var companionInfo in companionInfos)
+					if (companionInfo.inherited && companionInfo.instance is T matchedCompanion)
+						yield return matchedCompanion;
+				if (maybeParentCompanionResolver is {} parentCompanionResolver) {
+					var inheritedCompanions = parentCompanionResolver.EnumerateInheritedCompanions<T>();
+					foreach (var inheritedCompanion in inheritedCompanions) yield return inheritedCompanion;
+				}
+			}
+
+			public IEnumerable<T> EnumerateCompanions<T> () where T: class {
+				foreach (var companionInfo in companionInfos)
+					if (companionInfo.instance is T matchedCompanion)
+						yield return matchedCompanion;
+				if (maybeParentCompanionResolver is {} parentCompanionResolver) {
+					var inheritedCompanions = parentCompanionResolver.EnumerateInheritedCompanions<T>();
+					foreach (var inheritedCompanion in inheritedCompanions) yield return inheritedCompanion;
+				}
+			}
 		}
 
 		static Func<Type, CompanionResolver> getCompanionResolver { get; } =
@@ -84,5 +125,8 @@ namespace Arcanum.Companions {
 
 		public static Boolean HasCompanion<T> (this Type type) where T: class =>
 			type.MayGetCompanion<T>() is {};
+
+		public static IEnumerable<T> EnumerateCompanions<T> (this Type type) where T: class =>
+			getCompanionResolver(type).EnumerateCompanions<T>();
 	}
 }

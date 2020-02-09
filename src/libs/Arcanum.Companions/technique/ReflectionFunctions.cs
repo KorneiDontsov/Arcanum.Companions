@@ -2,9 +2,21 @@
 
 namespace Arcanum.Companions {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Reflection;
 
 	static class ReflectionFunctions {
+		public static Boolean IsClosedGenType (this Type type, [MaybeNullWhen(false)] out Type definition) {
+			if (type.IsGenericType && ! type.IsGenericTypeDefinition) {
+				definition = type.GetGenericTypeDefinition();
+				return true;
+			}
+			else {
+				definition = null!;
+				return false;
+			}
+		}
+
 		public static ConstructorInfo GetDefaultCtor (this Type type) =>
 			type.GetConstructor(Type.EmptyTypes);
 
