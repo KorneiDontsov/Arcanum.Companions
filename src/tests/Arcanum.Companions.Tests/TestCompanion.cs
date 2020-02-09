@@ -31,14 +31,14 @@ namespace Arcanum.Companions.Tests {
 		[InlineData(typeof(TypeWithCompanionAttribute))]
 		[InlineData(typeof(TypeWithCompanionWithDefaultCtor))]
 		[InlineData(typeof(TypeWithCompanionWithParamCtor))]
-		public void TypeHasCompanion (Type type) =>
-			_ = type.GetCompanion<ICompanion>();
+		public void Exists (Type type) =>
+			type.HasCompanion<ICompanion>().Should().BeTrue();
 
 		[Theory]
 		[InlineData(typeof(TypeWithCompanionAttribute))]
 		[InlineData(typeof(TypeWithCompanionWithDefaultCtor))]
 		[InlineData(typeof(TypeWithCompanionWithParamCtor))]
-		public void TypeCompanionIsSingleton (Type type) {
+		public void IsSingleton (Type type) {
 			var companion1 = type.GetCompanion<ICompanion>();
 			var companion2 = type.GetCompanion<ICompanion>();
 			companion1.Should().BeSameAs(companion2);
